@@ -1116,4 +1116,3 @@ UIS.InputBegan:Connect(function(input, gpe)
         Main.Visible = not Main.Visible
     end
 end)
-    
